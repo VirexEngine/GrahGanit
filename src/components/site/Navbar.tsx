@@ -327,7 +327,9 @@ export function Navbar() {
           >
             <div className="flex items-center justify-between p-5">
               <div className="flex items-center gap-2.5">
-                <img src="/favicon.png" alt="GrahGanit Logo" className="h-8 w-8 object-contain" />
+                <div className="relative h-8 w-8 rounded-full bg-black/40 border border-[#D4A94F]/40 flex items-center justify-center overflow-hidden p-0.5 shadow-[0_0_15px_rgba(212,175,78,0.3)]">
+                  <img src="/logo.jpg" alt="GrahGanit Logo" className="h-full w-full object-cover rounded-full" />
+                </div>
                 <span className="font-display text-xl">
                   Grah<span className="text-gradient-gold">Ganit</span>
                 </span>
