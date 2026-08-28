@@ -16,7 +16,7 @@ export function FloatingWhatsApp() {
     return () => clearTimeout(timer);
   }, []);
 
-  const whatsappNumber = "1234567890"; // Replace with actual WhatsApp support number
+  const whatsappNumber = "919899818720"; // GrahGanit WhatsApp Support Number
   const defaultMessage = "Hello GrahGanit, I would like to book a consultation.";
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(defaultMessage)}`;
 

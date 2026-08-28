@@ -142,9 +142,9 @@ const INFO_CARDS = [
   {
     icon: <Phone className="h-6 w-6" />,
     label: "WhatsApp Assistance",
-    value: "+91 1234567890",
+    value: "+91 98998 18720",
     sub: "Mon–Sat, 10 AM – 7 PM IST",
-    href: "https://wa.me/911234567890",
+    href: "https://wa.me/919899818720",
     color: "from-emerald-500/20 to-teal-700/10",
     accent: "group-hover:text-emerald-400",
   },

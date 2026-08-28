@@ -450,7 +450,8 @@ export function Footer() {
             </p>
             <div className="pt-2 text-xs text-gold-soft font-mono space-y-1">
               <p>📍 167B, Second Floor, Gaur City Center Greater Noida West</p>
-              <p>✉️ grahganit2026@gmail.com</p>
+              <p>📞 <a href="tel:+919899818720" className="hover:underline">+91 98998 18720</a></p>
+              <p>✉️ <a href="mailto:grahganit2026@gmail.com" className="hover:underline">grahganit2026@gmail.com</a></p>
             </div>
           </div>
           {[

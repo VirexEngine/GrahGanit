@@ -142,6 +142,7 @@ function PrivacyPolicyComponent() {
               If you have any questions, concerns, or requests regarding this Privacy Policy or your data, please write to us at:
             </p>
             <div className="pt-2 text-xs font-mono space-y-1 text-gold-soft bg-white/3 p-4 rounded-2xl border border-white/10">
+              <p className="flex items-center gap-2">📞 <span>+91 98998 18720</span></p>
               <p className="flex items-center gap-2">✉️ <span>grahganit2026@gmail.com</span></p>
               <p className="flex items-center gap-2">📍 <span>167B, Second Floor, Gaur City Center, Greater Noida West, Uttar Pradesh, India</span></p>
             </div>
