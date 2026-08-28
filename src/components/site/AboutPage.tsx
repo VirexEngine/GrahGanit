@@ -465,9 +465,9 @@ function TestimonialsMarquee() {
 // ─── 6. Team Section ──────────────────────────────────────────────────────────
 const TEAM = [
   {
-    name: "Gurudevi Rao",
-    role: "Founder & Chief Astrologer",
-    bio: "Two decades of Vedic practice, trained under masters in Varanasi. Gurudevi bridges ancient oral tradition with digital precision.",
+    name: "Acharyaa Smita Mishra",
+    role: "Founder & Chief Vedic Scholar",
+    bio: "Two decades of Vedic practice, trained under masters in Varanasi. Acharyaa Smita Mishra bridges ancient astrological texts with precision planetary mathematics.",
     gradient: "from-violet-500 to-purple-800",
     symbol: "☽",
   },
@@ -667,7 +667,7 @@ const FAQS = [
   { q: "How accurate is the Kundali?", a: "Your chart is generated using precise astronomical calculations for your exact birth time and place. The symbolic interpretation is a starting point for reflection — a map, not a destination." },
   { q: "Do you store my birth details?", a: "Your privacy is sacred to us. The preview calculator runs client-side. Stored data is encrypted and never sold or shared with third parties." },
   { q: "Which tradition do you follow?", a: "The Kundali uses Vedic (Jyotish) sidereal astrology; numerology follows the Pythagorean method; palmistry draws from both classical Western and Vedic chirognomy." },
-  { q: "Can I get a consultation in Hindi?", a: "Yes — Gurudevi conducts consultations in Hindi, English, and Marathi. Please note your preferred language when booking." },
+  { q: "Can I get a consultation in Hindi?", a: "Yes — our Vedic scholars conduct consultations in Hindi, English, and Sanskrit. Please note your preferred language when booking." },
   { q: "How long does a consultation take?", a: "Standard readings are 30 minutes; Deep Cosmic readings are 60 minutes. All sessions are conducted via secure video call." },
 ];
 
@@ -763,7 +763,7 @@ function ContactSlots() {
             Ready to Read Your Stars?
           </h2>
           <p className="text-foreground/70 max-w-lg mx-auto mb-10 leading-relaxed">
-            Gurudevi accepts a limited number of deep consultations each month to ensure every seeker receives full presence and attention.
+            Our Vedic scholars accept a limited number of deep consultations each month to ensure every seeker receives full presence, authentic planetary mathematics, and attention.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

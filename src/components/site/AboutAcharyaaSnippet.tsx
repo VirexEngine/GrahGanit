@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { X, Sparkles, Star, Award, BookOpen, Heart, ArrowRight } from "lucide-react";
 
-export function AboutGurudeviSnippet() {
+export function AboutAcharyaaSnippet() {
   const [showStory, setShowStory] = useState(false);
 
   return (
@@ -179,4 +179,3 @@ export function AboutGurudeviSnippet() {
     </section>
   );
 }
-

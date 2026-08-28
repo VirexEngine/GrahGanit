@@ -3,7 +3,7 @@ import { StarField } from "@/components/site/StarField";
 import { CursorGlow, ScrollProgress } from "@/components/site/Interactive";
 import { Navbar } from "@/components/site/Navbar";
 import { Hero } from "@/components/site/Hero";
-import { AboutGurudeviSnippet } from "@/components/site/AboutGurudeviSnippet";
+import { AboutAcharyaaSnippet } from "@/components/site/AboutAcharyaaSnippet";
 import { ReportsExplorerSection } from "@/components/site/ReportsExplorerSection";
 import { SpiritualSection as WhyChooseUsSection, Testimonials, ContactSection, Footer, FloatingActions } from "@/components/site/Sections";
 import { LatestArticles } from "@/components/site/LatestArticles";
@@ -12,8 +12,8 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: 'Home | Gurudevi Consulting' },
-      { name: 'description', content: 'Transforming lives through Vedic Wisdom. Book your personal consultation with Gurudevi today.' },
+      { title: 'GrahGanit — Precision Vedic Planetary Mathematics, Kundali & Astrology' },
+      { name: 'description', content: 'Discover your cosmic blueprint with GrahGanit (ग्रह गणित). Swiss-ephemeris Vedic Kundali, Planetary Mathematics, Numerology & Palmistry — calculated with precision.' },
     ],
   }),
 });
@@ -35,7 +35,7 @@ function Index() {
         <Hero />
         <ReportsExplorerSection />
         <WhyChooseUsSection />
-        <AboutGurudeviSnippet />
+        <AboutAcharyaaSnippet />
         <LatestArticles />
         <Testimonials />
       </main>
