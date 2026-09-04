@@ -430,13 +430,13 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking,
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <a
-                    href={`https://wa.me/919999999999?text=${encodeURIComponent(`Namaste GrahGanit Support, I need assistance regarding my consultation booking Ref: ${booking.reference_id}`)}`}
+                    href={`https://wa.me/919899818720?text=${encodeURIComponent(`Namaste GrahGanit Support, I need assistance regarding my consultation booking Ref: ${booking.reference_id}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 transition text-xs font-mono font-semibold cursor-pointer"
                   >
                     <Phone className="w-3.5 h-3.5" />
-                    <span>WhatsApp Concierge</span>
+                    <span>WhatsApp Concierge (+91 9899818720)</span>
                   </a>
 
                   <a
