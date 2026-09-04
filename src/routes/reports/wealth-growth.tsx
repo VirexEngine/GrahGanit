@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer, FloatingActions } from "@/components/site/Sections";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Coins, Gem, ShieldCheck } from "lucide-react";
+import { trackReportViewed } from "@/lib/analytics";
 
 export const Route = createFileRoute("/reports/wealth-growth")({
   component: WealthGrowthReport,
@@ -15,6 +17,13 @@ export const Route = createFileRoute("/reports/wealth-growth")({
 });
 
 function WealthGrowthReport() {
+  useEffect(() => {
+    trackReportViewed({
+      report_type: "wealth_growth",
+      report_id: "report_wealth_growth",
+    });
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-cosmos text-foreground overflow-x-hidden flex flex-col justify-between">
       <Navbar />

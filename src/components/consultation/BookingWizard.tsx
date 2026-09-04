@@ -6,6 +6,13 @@ import { CalendarDays, Clock, User, CheckCircle2, CreditCard, ChevronRight, Chev
 import { getActiveProfile } from '../../utils/profile';
 import { searchCities, CitySearchResult } from '../../utils/locationService';
 import { DobInput } from '../common/DobInput';
+import {
+  trackBeginCheckout,
+  trackPaymentInitiated,
+  trackCheckoutAbandoned,
+  trackPaymentFailed,
+  trackPurchase,
+} from '@/lib/analytics';
 
 const STEPS = [
   { id: 1, name: 'Choose Service', icon: HelpCircle },
@@ -135,6 +142,25 @@ export const BookingWizard: React.FC = () => {
     }
   }, [bookingConfirmed]);
 
+  // Track begin_checkout when reaching Step 5 (Review & Pay)
+  useEffect(() => {
+    if (step === 5 && selectedService) {
+      const totalAmount = selectedService.price + (formData.includeRecording ? 499 : 0);
+      trackBeginCheckout({
+        value: totalAmount,
+        currency: 'INR',
+        items: [
+          {
+            item_id: selectedService.id,
+            item_name: selectedService.name,
+            price: totalAmount,
+            item_category: 'consultation',
+          },
+        ],
+      });
+    }
+  }, [step, selectedService, formData.includeRecording]);
+
   // Helper to load Razorpay Checkout script dynamically
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -191,6 +217,13 @@ export const BookingWizard: React.FC = () => {
       const orderData = await orderRes.json();
 
       // 2. Open Razorpay Checkout modal
+      trackPaymentInitiated({
+        order_id: orderData.order_id,
+        plan_id: selectedService.id,
+        value: totalAmount,
+        currency: orderData.currency || 'INR',
+      });
+
       const options = {
         key: orderData.key_id || '',
         amount: orderData.amount,
@@ -210,6 +243,32 @@ export const BookingWizard: React.FC = () => {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
               }),
+            });
+
+            if (!verifyRes.ok) {
+              trackPaymentFailed({
+                order_id: response.razorpay_order_id,
+                plan_id: selectedService.id,
+                error_code: 'signature_verification_failed',
+                error_description: 'Backend signature verification failed',
+              });
+              throw new Error('Payment verification failed on server.');
+            }
+
+            // Server-verified purchase tracking
+            trackPurchase({
+              transaction_id: response.razorpay_payment_id,
+              order_id: response.razorpay_order_id,
+              value: totalAmount,
+              currency: orderData.currency || 'INR',
+              items: [
+                {
+                  item_id: selectedService.id,
+                  item_name: selectedService.name,
+                  price: totalAmount,
+                  item_category: 'consultation',
+                },
+              ],
             });
 
             const confirmedBooking = {
@@ -243,6 +302,12 @@ export const BookingWizard: React.FC = () => {
             setBookingConfirmed(true);
           } catch (err) {
             console.error('Payment verification error:', err);
+            trackPaymentFailed({
+              order_id: response.razorpay_order_id,
+              plan_id: selectedService.id,
+              error_code: 'verification_exception',
+              error_description: String(err),
+            });
             setBookingConfirmed(true);
           } finally {
             setIsProcessingPayment(false);
@@ -261,6 +326,10 @@ export const BookingWizard: React.FC = () => {
         },
         modal: {
           ondismiss: () => {
+            trackCheckoutAbandoned({
+              order_id: orderData.order_id,
+              plan_id: selectedService.id,
+            });
             setIsProcessingPayment(false);
           },
         },
@@ -268,6 +337,12 @@ export const BookingWizard: React.FC = () => {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function (resp: any) {
+        trackPaymentFailed({
+          order_id: orderData.order_id,
+          plan_id: selectedService.id,
+          error_code: resp.error?.code || 'declined',
+          error_description: resp.error?.description || 'Transaction declined',
+        });
         alert(`Payment failed: ${resp.error?.description || 'Transaction declined'}`);
         setIsProcessingPayment(false);
       });

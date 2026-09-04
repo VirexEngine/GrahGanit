@@ -100,9 +100,30 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
+import { useRouterState } from "@tanstack/react-router";
+import { initGA, trackPageView } from "@/lib/analytics";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Initialize GA4 client-side once
+  useEffect(() => {
+    initGA();
+  }, []);
+
+  // Track SPA route changes including query params
+  const routerState = useRouterState({
+    select: (s) => ({
+      pathname: s.location.pathname,
+      searchStr: s.location.searchStr,
+    }),
+  });
+
+  useEffect(() => {
+    const fullPath = routerState.pathname + (routerState.searchStr ? `?${routerState.searchStr}` : "");
+    trackPageView(fullPath, typeof document !== "undefined" ? document.title : "");
+  }, [routerState.pathname, routerState.searchStr]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
