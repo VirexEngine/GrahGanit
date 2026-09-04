@@ -31,6 +31,7 @@ const NAV_CONFIG: NavItem[] = [
     label: "Consultation",
     items: [
       { kind: "link", label: "Book a Consultation", href: "/booking" },
+      { kind: "link", label: "My Bookings", href: "/my-bookings" },
     ],
   },
   {

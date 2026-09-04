@@ -162,9 +162,13 @@ class ConsultationBooking(Base):
     currency = Column(String(10), default="INR")
     scheduled_date = Column(String(100), nullable=True)
     scheduled_time = Column(String(100), nullable=True)
+    scheduled_start = Column(DateTime, nullable=True)
+    scheduled_end = Column(DateTime, nullable=True)
+    meeting_mode = Column(String(50), default="video_conference")
+    meeting_url = Column(String(500), nullable=True)
     notes = Column(Text, nullable=True)
     include_recording = Column(Boolean, default=False)
-    payment_status = Column(String(50), default="created")  # created, paid, failed
+    payment_status = Column(String(50), default="created")  # created, paid, failed, cancelled
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

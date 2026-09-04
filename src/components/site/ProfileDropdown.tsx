@@ -108,12 +108,20 @@ export const ProfileDropdown: React.FC = () => {
                 <span>Monthly Horoscope</span>
               </Link>
               <Link
+                to="/my-bookings"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <Calendar className="w-4 h-4 text-white/40 shrink-0" />
+                <span>My Bookings</span>
+              </Link>
+              <Link
                 to="/booking"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white/5 hover:text-white transition-colors"
               >
                 <Settings className="w-4 h-4 text-white/40 shrink-0" />
-                <span>Consultations</span>
+                <span>Book Consultation</span>
               </Link>
             </div>
 

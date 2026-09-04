@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as MyBookingsRouteImport } from './routes/my-bookings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -57,6 +58,11 @@ const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   id: '/privacy-policy',
   path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyBookingsRoute = MyBookingsRouteImport.update({
+  id: '/my-bookings',
+  path: '/my-bookings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/my-bookings': typeof MyBookingsRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/testimonials': typeof TestimonialsRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/my-bookings': typeof MyBookingsRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/testimonials': typeof TestimonialsRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/my-bookings': typeof MyBookingsRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/testimonials': typeof TestimonialsRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/login'
+    | '/my-bookings'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/testimonials'
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/login'
+    | '/my-bookings'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/testimonials'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/login'
+    | '/my-bookings'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/testimonials'
@@ -445,6 +457,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
+  MyBookingsRoute: typeof MyBookingsRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   TestimonialsRoute: typeof TestimonialsRoute
@@ -494,6 +507,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy-policy'
       fullPath: '/privacy-policy'
       preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-bookings': {
+      id: '/my-bookings'
+      path: '/my-bookings'
+      fullPath: '/my-bookings'
+      preLoaderRoute: typeof MyBookingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -725,6 +745,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,
+  MyBookingsRoute: MyBookingsRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
   TestimonialsRoute: TestimonialsRoute,

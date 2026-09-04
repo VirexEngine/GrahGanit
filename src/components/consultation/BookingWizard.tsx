@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PLANS, Plan } from './ConsultationTypes';
 import { PreConsultationInsight } from './PreConsultationInsight';
-import { CalendarDays, Clock, User, CheckCircle2, CreditCard, ChevronRight, ChevronLeft, Calendar, HelpCircle, Check, BadgeCheck, ShieldCheck, Printer, FileText } from 'lucide-react';
+import { CalendarDays, Clock, User, CheckCircle2, CreditCard, ChevronRight, ChevronLeft, Calendar, HelpCircle, Check, BadgeCheck, ShieldCheck, Printer, FileText, Video, MapPin, Building } from 'lucide-react';
 import { getActiveProfile } from '../../utils/profile';
 import { searchCities, CitySearchResult } from '../../utils/locationService';
 import { DobInput } from '../common/DobInput';
@@ -12,6 +12,7 @@ import {
   trackCheckoutAbandoned,
   trackPaymentFailed,
   trackPurchase,
+  trackBookingConfirmed,
 } from '@/lib/analytics';
 
 const STEPS = [
@@ -114,6 +115,7 @@ export const BookingWizard: React.FC = () => {
     place: '',
     notes: '',
     includeRecording: false,
+    consultationMode: 'online' as 'online' | 'offline',
   });
 
   const [autocompleteInput, setAutocompleteInput] = useState('');
@@ -207,6 +209,7 @@ export const BookingWizard: React.FC = () => {
           scheduled_time: selectedTime || '10:30 AM',
           notes: formData.notes || '',
           include_recording: formData.includeRecording,
+          consultation_mode: formData.consultationMode,
         }),
       });
 
@@ -271,6 +274,13 @@ export const BookingWizard: React.FC = () => {
               ],
             });
 
+            // Lifecycle confirmation event (no PII or payment provider IDs)
+            trackBookingConfirmed({
+              plan_id: selectedService.id,
+              value: totalAmount,
+              currency: orderData.currency || 'INR',
+            });
+
             const confirmedBooking = {
               id: response.razorpay_payment_id || `pay_${Date.now()}`,
               order_id: response.razorpay_order_id,
@@ -280,6 +290,8 @@ export const BookingWizard: React.FC = () => {
               amount: totalAmount,
               date: formattedSelectedDate,
               time: selectedTime || '10:30 AM',
+              meeting_mode: formData.consultationMode,
+              venue_address: formData.consultationMode === 'offline' ? '167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318' : null,
               seeker_name: formData.name || 'Seeker',
               seeker_email: formData.email || '',
               paid_at: new Date().toISOString(),
@@ -518,7 +530,11 @@ export const BookingWizard: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-display font-medium text-white">Your Appointment is Confirmed!</h3>
                   <p className="text-xs text-white/50 mt-1 max-w-sm mx-auto">
-                    A confirmation email along with your secure Google Meet link has been dispatched to {formData.email || 'your email'}.
+                    {formData.consultationMode === 'offline' ? (
+                      <>An appointment pass and office location directions have been dispatched to {formData.email || 'your email'}.</>
+                    ) : (
+                      <>A confirmation email along with your secure Google Meet link has been dispatched to {formData.email || 'your email'}.</>
+                    )}
                   </p>
                 </div>
 
@@ -529,15 +545,36 @@ export const BookingWizard: React.FC = () => {
                   <span className="bg-white/3 border border-white/10 rounded-full px-3 py-1 flex items-center gap-1">
                     ⏰ Time: {selectedTime || '10:30 AM'}
                   </span>
-                  <span className="bg-white/3 border border-white/10 rounded-full px-3 py-1 flex items-center gap-1 text-emerald-400">
-                    🟢 Meeting Link Active
-                  </span>
+                  {formData.consultationMode === 'offline' ? (
+                    <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full px-3 py-1 flex items-center gap-1">
+                      🏛️ Mode: In-Person Office Visit
+                    </span>
+                  ) : (
+                    <span className="bg-white/3 border border-white/10 rounded-full px-3 py-1 flex items-center gap-1 text-emerald-400">
+                      🟢 Mode: Private Video Meet (HD)
+                    </span>
+                  )}
                   {confirmedBookingDetails?.payment_id && (
                     <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-full px-3 py-1 flex items-center gap-1">
                       💳 Txn: {confirmedBookingDetails.payment_id}
                     </span>
                   )}
                 </div>
+
+                {formData.consultationMode === 'offline' && (
+                  <div className="mt-2 p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl max-w-md text-left text-xs text-amber-200/90 font-sans">
+                    <p className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                      <Building className="w-4 h-4 text-gold" />
+                      <span>GrahGanit Observatory Address:</span>
+                    </p>
+                    <p className="text-[11px] text-white/80 leading-relaxed font-mono">
+                      167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318
+                    </p>
+                    <p className="text-[10px] text-white/50 mt-1">
+                      ✦ Please arrive 10 minutes prior to your time. Kindly bring your Janam Kundli / birth notes.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Dynamic Insight Card */}
@@ -806,10 +843,100 @@ export const BookingWizard: React.FC = () => {
 
               {/* Step 4: Birth Details & Consultation notes */}
               {step === 4 && (
-                <div className="flex flex-col gap-4">
-                  <h4 className="text-sm font-semibold text-white font-mono uppercase tracking-widest border-b border-white/5 pb-2.5">
-                    Step 4: Enter Personal &amp; Birth Details
-                  </h4>
+                <div className="flex flex-col gap-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                    <h4 className="text-sm font-semibold text-white font-mono uppercase tracking-widest">
+                      Step 4: Consultation Mode &amp; Seeker Details
+                    </h4>
+                    <span className="text-[10px] font-mono text-gold/80 bg-gold/10 px-2.5 py-0.5 rounded-full border border-gold/20 self-start sm:self-auto">
+                      Online VC or In-Person Visit
+                    </span>
+                  </div>
+
+                  {/* Consultation Mode Selection (Online VC vs Offline In-Person) */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-mono text-white/50 uppercase tracking-wider block">
+                      Choose Consultation Mode
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Option A: Online Video Consultation */}
+                      <div
+                        onClick={() => setFormData({ ...formData, consultationMode: 'online' })}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 ${
+                          formData.consultationMode === 'online'
+                            ? 'bg-gold/15 border-gold shadow-lg shadow-gold/10'
+                            : 'bg-white/3 border-white/10 hover:border-gold/30 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                              formData.consultationMode === 'online' ? 'bg-gold text-cosmos' : 'bg-white/10 text-white/70'
+                            }`}>
+                              <Video className="w-4 h-4" />
+                            </div>
+                            <span className="text-xs font-semibold text-white">Online Video Call (VC)</span>
+                          </div>
+                          <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
+                            formData.consultationMode === 'online' ? 'border-gold bg-gold text-cosmos font-bold' : 'border-white/30'
+                          }`}>
+                            {formData.consultationMode === 'online' && '✓'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-white/60 leading-relaxed font-sans pl-10">
+                          Private 1-on-1 Google Meet (HD) with Acharyaa Smita Mishra from anywhere globally.
+                        </p>
+                      </div>
+
+                      {/* Option B: Offline / In-Person Office Visit */}
+                      <div
+                        onClick={() => setFormData({ ...formData, consultationMode: 'offline' })}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 ${
+                          formData.consultationMode === 'offline'
+                            ? 'bg-amber-500/15 border-amber-400 shadow-lg shadow-amber-500/10'
+                            : 'bg-white/3 border-white/10 hover:border-gold/30 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                              formData.consultationMode === 'offline' ? 'bg-amber-400 text-cosmos' : 'bg-white/10 text-white/70'
+                            }`}>
+                              <Building className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-semibold text-white">In-Person Office Visit</span>
+                              <span className="ml-1.5 text-[9px] font-mono uppercase text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+                                Offline
+                              </span>
+                            </div>
+                          </div>
+                          <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
+                            formData.consultationMode === 'offline' ? 'border-amber-400 bg-amber-400 text-cosmos font-bold' : 'border-white/30'
+                          }`}>
+                            {formData.consultationMode === 'offline' && '✓'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-white/60 leading-relaxed font-sans pl-10">
+                          Meet Acharyaa Smita Mishra in person at <strong>Gaur City Center, Greater Noida West</strong>.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Offline mode address callout */}
+                    {formData.consultationMode === 'offline' && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2.5 text-xs text-amber-200/90 font-mono">
+                        <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="text-white block font-sans">Observatory Address for In-Person Visit:</strong>
+                          <span>167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318</span>
+                          <span className="block text-[10px] text-white/50 font-sans mt-0.5">
+                            Please carry your Janam Kundli / birth notes. Arrive 10 mins before your slot.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Left Column: Basic Info */}
@@ -978,6 +1105,18 @@ export const BookingWizard: React.FC = () => {
                         <strong className="text-white">{selectedService.name}</strong>
                       </div>
                       <div className="flex justify-between">
+                        <span>Consultation Mode</span>
+                        <strong className={formData.consultationMode === 'offline' ? 'text-amber-400' : 'text-emerald-400'}>
+                          {formData.consultationMode === 'offline' ? '🏛️ In-Person Office Visit' : '💻 Online Video Call (VC)'}
+                        </strong>
+                      </div>
+                      {formData.consultationMode === 'offline' && (
+                        <div className="flex flex-col gap-0.5 border-t border-white/5 pt-2 text-[11px]">
+                          <span className="text-white/40 font-mono uppercase text-[9px]">Observatory Address:</span>
+                          <span className="text-white/90">167B, 2nd Floor, Gaur City Center, Greater Noida West</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
                         <span>Scheduled Date</span>
                         <strong className="text-white">{formattedSelectedDate}</strong>
                       </div>
@@ -1131,6 +1270,18 @@ export const BookingWizard: React.FC = () => {
                   <span className="text-white/50">Consultant:</span>
                   <span className="text-white">Acharyaa Smita Mishra</span>
                 </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-white/50">Consultation Mode:</span>
+                  <span className={activeInvoiceBooking.meeting_mode === 'offline' ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold'}>
+                    {activeInvoiceBooking.meeting_mode === 'offline' ? 'In-Person Office Visit' : 'Private Video Conference (HD)'}
+                  </span>
+                </div>
+                {activeInvoiceBooking.meeting_mode === 'offline' && (
+                  <div className="flex justify-between border-b border-white/5 pb-2 text-[11px]">
+                    <span className="text-white/50">Venue / Address:</span>
+                    <span className="text-white text-right max-w-[240px]">167B, 2nd Floor, Gaur City Center, Greater Noida West</span>
+                  </div>
+                )}
                 <div className="flex justify-between border-b border-white/5 pb-2">
                   <span className="text-white/50">Scheduled Date:</span>
                   <span className="text-emerald-400 font-bold">{activeInvoiceBooking.date}</span>

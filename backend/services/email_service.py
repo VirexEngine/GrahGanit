@@ -116,12 +116,27 @@ class EmailService:
         payment_id = booking_data.get("payment_id", "N/A")
         order_id = booking_data.get("order_id", "N/A")
 
-        subject = f"Appointment Confirmed: {plan_name} with Acharyaa Smita Mishra"
+        meeting_mode = (booking_data.get("meeting_mode") or "online").lower()
+        is_offline = meeting_mode in ["offline", "in_person", "in-person"]
+        mode_label = "In-Person Sanctuary Visit" if is_offline else "Private Video Consultation (HD)"
+
+        subject = f"Appointment Confirmed ({mode_label}): {plan_name} with Acharyaa Smita Mishra"
+        
+        mode_instruction_text = (
+            "Consultation Mode: In-Person Office Visit\n"
+            "Observatory Address: 167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318\n"
+            "Please arrive 10 minutes prior to your scheduled time. Please bring your birth details and any previous astrological records."
+            if is_offline else
+            "Consultation Mode: Private 1-on-1 Video Conference (HD)\n"
+            "Your private Google Meet video session link will be activated 10 minutes before your scheduled appointment in your GrahGanit account."
+        )
+
         text_body = f"""Namaste {seeker_name},
 
 Your consultation appointment has been successfully confirmed!
 
 Session: {plan_name}
+Mode: {mode_label}
 Consultant: Acharyaa Smita Mishra (Senior Vedic Astrologer)
 Date: {scheduled_date}
 Time: {scheduled_time}
@@ -129,13 +144,26 @@ Total Amount: INR {amount}
 Transaction ID: {payment_id}
 Order ID: {order_id}
 
-Your private Google Meet video link will be activated 15 minutes before your scheduled session.
+{mode_instruction_text}
 
 Warm regards,
 GrahGanit Observatory
 167B, Second Floor, Gaur City Center, Greater Noida West
 Email: grahganit2026@gmail.com
 """
+
+        mode_box_html = (
+            f"""<div class="meet-box" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b;">
+              🏛️ <strong>In-Person Observatory Visit</strong><br>
+              <strong>Venue:</strong> 167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318<br>
+              <span style="font-size: 11px; opacity: 0.85;">Please arrive 10 minutes prior to {scheduled_time}. Bring your Janam Kundli or birth time records.</span>
+            </div>"""
+            if is_offline else
+            f"""<div class="meet-box">
+              💻 <strong>Private Video Consultation (HD)</strong><br>
+              Your private Google Meet video link will be activated 10 minutes before {scheduled_time} in your GrahGanit 'My Consultations' portal.
+            </div>"""
+        )
 
         html_body = f"""
         <!DOCTYPE html>
@@ -154,7 +182,7 @@ Email: grahganit2026@gmail.com
             .row:last-child {{ border-bottom: none; }}
             .label {{ color: rgba(255,255,255,0.5); }}
             .val {{ color: #ffffff; font-weight: 600; text-align: right; }}
-            .meet-box {{ background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 18px; text-align: center; margin: 24px 0; color: #34d399; font-size: 13px; font-weight: 500; }}
+            .meet-box {{ background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 18px; text-align: center; margin: 24px 0; color: #34d399; font-size: 13px; font-weight: 500; line-height: 1.6; }}
             .footer {{ font-size: 11px; color: rgba(255,255,255,0.4); text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px; margin-top: 24px; line-height: 1.6; }}
           </style>
         </head>
@@ -172,6 +200,7 @@ Email: grahganit2026@gmail.com
 
             <div class="card">
               <div class="row"><span class="label">Session Type</span><span class="val" style="color: #f59e0b;">{plan_name}</span></div>
+              <div class="row"><span class="label">Consultation Mode</span><span class="val" style="color: {'#f59e0b' if is_offline else '#34d399'};">{mode_label}</span></div>
               <div class="row"><span class="label">Astrologer</span><span class="val">Acharyaa Smita Mishra</span></div>
               <div class="row"><span class="label">Scheduled Date</span><span class="val">{scheduled_date}</span></div>
               <div class="row"><span class="label">Scheduled Time</span><span class="val">{scheduled_time}</span></div>
@@ -179,9 +208,7 @@ Email: grahganit2026@gmail.com
               <div class="row"><span class="label">Transaction ID</span><span class="val" style="font-family: monospace; font-size: 11px;">{payment_id}</span></div>
             </div>
 
-            <div class="meet-box">
-              Meeting Link: Your private Google Meet video session will be activated 15 minutes before {scheduled_time}.
-            </div>
+            {mode_box_html}
 
             <div class="footer">
               <strong>GrahGanit Observatory</strong><br>

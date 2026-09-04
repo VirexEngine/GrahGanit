@@ -270,3 +270,59 @@ export function trackPurchase(params: {
     })),
   });
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Consultation Lifecycle Events (Privacy-conscious, strictly no PII or raw payment IDs)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Fired when a user successfully completes a booking and reaches confirmation state.
+ */
+export function trackBookingConfirmed(params: {
+  plan_id: string;
+  value: number;
+  currency?: string;
+}): void {
+  trackEvent('booking_confirmed', {
+    plan_id: params.plan_id,
+    value: params.value,
+    currency: params.currency || 'INR',
+  });
+}
+
+/**
+ * Fired when the authenticated My Bookings dashboard is loaded with the user's booking count.
+ */
+export function trackMyBookingsViewed(params: {
+  total_bookings: number;
+  has_upcoming: boolean;
+}): void {
+  trackEvent('my_bookings_viewed', {
+    total_bookings: params.total_bookings,
+    has_upcoming: params.has_upcoming,
+  });
+}
+
+/**
+ * Fired when the user opens the comprehensive Booking Details modal/drawer.
+ */
+export function trackBookingDetailsViewed(params: {
+  plan_id: string;
+  status: string;
+}): void {
+  trackEvent('booking_details_viewed', {
+    plan_id: params.plan_id,
+    status: params.status,
+  });
+}
+
+/**
+ * Fired when the user clicks the active [Join Consultation] button.
+ */
+export function trackJoinConsultation(params: {
+  plan_id: string;
+}): void {
+  trackEvent('join_consultation', {
+    plan_id: params.plan_id,
+  });
+}
