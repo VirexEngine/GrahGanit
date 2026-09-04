@@ -230,14 +230,7 @@ At **GrahGanit**, our dual numerology engine combines the structural clarity of 
             if not existing:
                 new_tier = ConsultationTier(**t_data)
                 db.add(new_tier)
-            else:
-                existing.title = t_data["title"]
-                existing.price_inr = t_data["price_inr"]
-                existing.duration = t_data["duration"]
-                existing.description = t_data["description"]
-                existing.features = t_data["features"]
-                existing.is_popular = t_data["is_popular"]
-                existing.is_active = True
+            # Do NOT overwrite existing.price_inr, duration or details so Admin customizations persist permanently!
         db.commit()
         print("[SEED] Consultation tiers synchronized successfully.")
 
