@@ -252,7 +252,7 @@ function AstrologicalPanel() {
 // ─── Main Component ──────────────────────────────────────────────────────────
 function RouteComponent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [authUser, setAuthUser] = useState<{ name: string; email: string } | null>(null);
+  const [authUser, setAuthUser] = useState<{ name: string; email: string; picture?: string } | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Sign In vs Sign Up (Defaults to Sign Up if no user registered)
@@ -480,6 +480,7 @@ function RouteComponent() {
           name: p.name || data.user.name,
           email: p.email || data.user.email,
           phoneNumber: p.phone_number || data.user.phone_number || '',
+          photoUrl: p.photo_url || data.user.picture || undefined,
           gender: p.gender || 'Male',
           country: p.country || 'India',
           language: p.language || 'English',
@@ -541,6 +542,7 @@ function RouteComponent() {
           name: p.name || googleUser.name,
           email: p.email || googleUser.email,
           phoneNumber: p.phone_number || '',
+          photoUrl: googleUser.picture || p.photo_url || data?.user?.picture,
           gender: p.gender || 'Male',
           country: p.country || 'India',
           language: p.language || 'English',
@@ -556,11 +558,11 @@ function RouteComponent() {
         setAuthUser(null);
         syncState();
       } else {
-        setAuthUser({ name: googleUser.name, email: googleUser.email });
+        setAuthUser({ name: googleUser.name, email: googleUser.email, picture: googleUser.picture });
       }
     } catch (e) {
       console.warn('Google backend sync notice:', e);
-      setAuthUser({ name: googleUser.name, email: googleUser.email });
+      setAuthUser({ name: googleUser.name, email: googleUser.email, picture: googleUser.picture });
     } finally {
       setFormLoading(false);
     }
@@ -636,11 +638,25 @@ function RouteComponent() {
               <div className="w-full max-w-2xl rounded-3xl p-8 md:p-10"
                 style={{ background: 'rgba(8,5,20,0.95)', border: '1px solid rgba(212,175,78,0.2)', backdropFilter: 'blur(24px)' }}>
                 <div className="flex justify-between items-center border-b pb-5 mb-6" style={{ borderColor: 'rgba(212,175,78,0.1)' }}>
-                  <div>
-                    <div className="text-[9px] font-mono tracking-[0.3em] text-amber-400/50 mb-1">ॐ · CHART SYNCHRONISED</div>
-                    <h2 style={{ fontFamily: 'Georgia,serif', fontSize: '1.4rem', fontWeight: 400, color: '#f5f0e8' }}>
-                      Welcome, <span style={{ color: '#d4af78' }}>{profile.name}</span>
-                    </h2>
+                  <div className="flex items-center gap-4">
+                    {profile.photoUrl ? (
+                      <img
+                        src={profile.photoUrl}
+                        alt={profile.name}
+                        className="w-14 h-14 rounded-full border border-gold/40 object-cover shadow-[0_0_20px_rgba(212,175,78,0.3)] shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full border border-gold/40 bg-gradient-to-br from-purple to-cosmos flex items-center justify-center text-xl font-bold text-white shadow-inner shrink-0">
+                        {profile.name[0]}
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[9px] font-mono tracking-[0.3em] text-amber-400/50 mb-1">ॐ · CHART SYNCHRONISED</div>
+                      <h2 style={{ fontFamily: 'Georgia,serif', fontSize: '1.4rem', fontWeight: 400, color: '#f5f0e8' }}>
+                        Welcome, <span style={{ color: '#d4af78' }}>{profile.name}</span>
+                      </h2>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -720,6 +736,7 @@ function RouteComponent() {
                 <OnboardingWizard
                   userName={profile?.name || authUser?.name || ''}
                   userEmail={profile?.email || authUser?.email || ''}
+                  userPicture={profile?.photoUrl || authUser?.picture}
                   onComplete={handleOnboardingComplete}
                 />
               </div>

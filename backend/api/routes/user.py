@@ -257,11 +257,13 @@ def login_user(data: LoginRequest, db: Session = Depends(get_db)):
             "surname": user.surname,
             "phone_number": user.phone_number,
             "is_admin": user.is_admin,
+            "picture": user.picture,
             "has_profile": has_profile,
             "profile": {
                 "name": user.name or f"{user.first_name} {user.surname}",
                 "email": user.email,
                 "phone_number": user.phone_number,
+                "photo_url": user.picture,
                 "gender": bd.gender if bd else None,
                 "country": bd.country if bd else None,
                 "language": bd.language if bd else None,
@@ -375,6 +377,7 @@ def google_authenticate_user(payload: GoogleAuthRequest, db: Session = Depends(g
             name=payload.name,
             first_name=first_name,
             surname=surname,
+            picture=payload.picture,
             password_hash=hash_password(secrets.token_hex(16)),
             is_verified=True,
             is_admin=False
@@ -382,6 +385,12 @@ def google_authenticate_user(payload: GoogleAuthRequest, db: Session = Depends(g
         db.add(user)
         db.commit()
         db.refresh(user)
+    else:
+        # Update picture if provided
+        if payload.picture and user.picture != payload.picture:
+            user.picture = payload.picture
+            db.commit()
+            db.refresh(user)
 
     bd = user.birth_details
     has_profile = bool(bd and bd.date_of_birth)
@@ -403,6 +412,7 @@ def google_authenticate_user(payload: GoogleAuthRequest, db: Session = Depends(g
                 "name": user.name or f"{user.first_name} {user.surname}",
                 "email": user.email,
                 "phone_number": user.phone_number,
+                "photo_url": payload.picture or user.picture,
                 "gender": bd.gender if bd else None,
                 "country": bd.country if bd else None,
                 "language": bd.language if bd else None,

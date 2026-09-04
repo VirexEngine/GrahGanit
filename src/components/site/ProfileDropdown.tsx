@@ -44,9 +44,23 @@ export const ProfileDropdown: React.FC = () => {
       {/* Avatar Node */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-8 h-8 rounded-full border border-gold/40 bg-gradient-to-br from-purple to-cosmos flex items-center justify-center text-xs font-bold text-white shadow-inner cursor-pointer hover:border-gold transition-colors select-none"
+        className="w-8 h-8 rounded-full border border-gold/40 bg-gradient-to-br from-purple to-cosmos flex items-center justify-center text-xs font-bold text-white shadow-inner cursor-pointer hover:border-gold transition-colors select-none overflow-hidden"
+        title={profile.name}
       >
-        {profile.name[0]}
+        {profile.photoUrl ? (
+          <img
+            src={profile.photoUrl}
+            alt={profile.name}
+            className="w-full h-full object-cover rounded-full"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              // Fallback to text initial if Google photo fails to load
+              (e.currentTarget as HTMLElement).style.display = 'none';
+            }}
+          />
+        ) : (
+          profile.name[0]
+        )}
       </button>
 
       {isOpen && (
@@ -54,13 +68,27 @@ export const ProfileDropdown: React.FC = () => {
           {/* Backdrop Click Shield */}
           <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsOpen(false)} />
 
-          <div className="absolute right-0 top-[115%] w-60 bg-[#0c0d1e]/98 border border-white/10 rounded-2xl p-4 shadow-2xl z-50 flex flex-col gap-3 font-sans">
+          <div className="absolute right-0 top-[115%] w-64 bg-[#0c0d1e]/98 border border-white/10 rounded-2xl p-4 shadow-2xl z-50 flex flex-col gap-3 font-sans">
             {/* Header info */}
-            <div className="border-b border-white/5 pb-2.5">
-              <span className="text-xs font-semibold text-white block">{profile.name}</span>
-              <span className="text-[9px] text-gold font-mono block mt-0.5 uppercase tracking-wider">
-                {profile.moonSign} Moon • {profile.ascendant} Ascendant
-              </span>
+            <div className="border-b border-white/5 pb-2.5 flex items-center gap-3">
+              {profile.photoUrl ? (
+                <img
+                  src={profile.photoUrl}
+                  alt={profile.name}
+                  className="w-10 h-10 rounded-full border border-gold/30 object-cover shrink-0 shadow-md"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full border border-gold/30 bg-gradient-to-br from-purple to-cosmos flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-inner">
+                  {profile.name[0]}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-semibold text-white block truncate">{profile.name}</span>
+                <span className="text-[9px] text-gold font-mono block mt-0.5 uppercase tracking-wider truncate">
+                  {profile.moonSign} Moon • {profile.ascendant} Asc
+                </span>
+              </div>
             </div>
 
             {/* Menu Items */}

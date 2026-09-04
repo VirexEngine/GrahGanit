@@ -138,6 +138,7 @@ export const generateCosmicProfile = (details: {
   name: string;
   email: string;
   phoneNumber?: string;
+  photoUrl?: string;
   gender: string;
   country: string;
   language: string;
@@ -209,7 +210,7 @@ export const generateCosmicProfile = (details: {
     phoneNumber: details.phoneNumber || '',
     dob: isoDate,
     time: time24,
-    photoUrl: undefined,
+    photoUrl: details.photoUrl || undefined,
     latitude: 28.6139,
     longitude: 77.2090,
     timezone: 'Asia/Kolkata',

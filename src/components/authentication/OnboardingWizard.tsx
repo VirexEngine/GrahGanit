@@ -8,6 +8,7 @@ import { DobInput } from '../common/DobInput';
 interface OnboardingWizardProps {
   userName: string;
   userEmail: string;
+  userPicture?: string;
   onComplete: () => void;
 }
 
@@ -19,6 +20,7 @@ const LOCATIONS = ['Delhi, India', 'New Delhi, India', 'Delhi Cantt, India', 'Mu
 export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   userName,
   userEmail,
+  userPicture,
   onComplete,
 }) => {
   const [step, setStep] = useState(1);
@@ -160,9 +162,17 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           if (prev >= 100) {
             clearInterval(interval);
             // On completion, generate profile with backend ephemeris data
+            const cachedProfile = (() => {
+              try {
+                return JSON.parse(localStorage.getItem('grahganit_active_profile') || '{}');
+              } catch {
+                return {};
+              }
+            })();
             const profile = generateCosmicProfile({
               ...formData,
               email: userEmail,
+              photoUrl: userPicture || cachedProfile.photoUrl || undefined,
               backendChart: backendChartData,
             });
             setCalculatedProfile(profile);
