@@ -118,11 +118,13 @@ def send_otp(data: SendOTPRequest, background_tasks: BackgroundTasks, db: Sessio
         "verified": False,
     }
 
-    # Dispatch email directly to Gmail SMTP
+    # Single application-level send attempt (no duplicate retries to prevent duplicate emails)
     sent = EmailService.send_otp_email(email_key, raw_otp)
     if not sent:
-        # Fallback retry in background task just in case
-        background_tasks.add_task(EmailService.send_otp_email, email_key, raw_otp)
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to dispatch verification email at this moment. Please check your email configuration or try again shortly."
+        )
 
     return {
         "status": "success",

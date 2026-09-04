@@ -1,27 +1,79 @@
 import os
 import smtplib
 import logging
-import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
+def _redact_email(email_address: str) -> str:
+    """Masks an email address for privacy in logs (e.g., j***e@example.com)."""
+    if not email_address or "@" not in email_address:
+        return "[REDACTED_EMAIL]"
+    parts = email_address.split("@", 1)
+    user_part, domain_part = parts[0], parts[1]
+    if len(user_part) <= 2:
+        masked_user = user_part[0] + "*"
+    else:
+        masked_user = user_part[0] + ("*" * (len(user_part) - 2)) + user_part[-1]
+    return f"{masked_user}@{domain_part}"
+
+
 class EmailService:
     """
-    Production High-Reliability Dual-Engine Email Service.
-    Uses HTTPS REST API (Port 443 - never blocked by cloud firewalls) 
-    with automatic fallback to Gmail SMTP SSL/TLS.
+    Deterministic, environment-driven SMTP email service for GrahGanit.
+    Connects strictly to configured SMTP_HOST & SMTP_PORT without hardcoded credentials
+    or silent provider fallbacks.
     """
 
     @staticmethod
-    def _send_email(to_email: str, subject: str, html_body: str, text_body: str) -> bool:
-        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
-        smtp_user = os.getenv("SMTP_USERNAME", "grahganit2026@gmail.com").strip()
-        smtp_pass = os.getenv("SMTP_PASSWORD", "ivhnmhrarmwtzxkc").strip()
-        email_from = os.getenv("EMAIL_FROM", f"GrahGanit Observatory <{smtp_user}>").strip()
+    def _get_timeout() -> float:
+        raw_timeout = os.getenv("SMTP_TIMEOUT", "15").strip()
+        try:
+            val = float(raw_timeout)
+            return val if val > 0 else 15.0
+        except ValueError:
+            return 15.0
 
+    @staticmethod
+    def _send_email(to_email: str, subject: str, html_body: str, text_body: str) -> bool:
+        smtp_host = os.getenv("SMTP_HOST", "").strip()
+        raw_port = os.getenv("SMTP_PORT", "587").strip()
+        smtp_user = os.getenv("SMTP_USERNAME", "").strip()
+        smtp_pass = os.getenv("SMTP_PASSWORD", "").strip()
+        email_from = os.getenv("EMAIL_FROM", "").strip()
+
+        # Validate mandatory host configuration
+        if not smtp_host:
+            logger.error("[SMTP CONFIG ERROR] SMTP_HOST environment variable is not configured. Email aborted.")
+            return False
+
+        # Parse port
+        try:
+            smtp_port = int(raw_port)
+            if not (1 <= smtp_port <= 65535):
+                raise ValueError("Port out of range")
+        except ValueError:
+            logger.error(f"[SMTP CONFIG ERROR] Invalid SMTP_PORT '{raw_port}'. Email aborted.")
+            return False
+
+        # Determine EMAIL_FROM
+        if not email_from:
+            if smtp_user:
+                email_from = f"GrahGanit Observatory <{smtp_user}>"
+            else:
+                logger.error("[SMTP CONFIG ERROR] Neither EMAIL_FROM nor SMTP_USERNAME is configured. Email aborted.")
+                return False
+
+        timeout = EmailService._get_timeout()
+        redacted_to = _redact_email(to_email)
+
+        # Build MIME Message
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = email_from
@@ -29,36 +81,44 @@ class EmailService:
         msg.attach(MIMEText(text_body, "plain", "utf-8"))
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-        # Strategy 1: Direct High-Speed Gmail SMTP TLS (Port 587)
-        try:
-            logger.info(f"[GMAIL SMTP 587] Connecting to {smtp_host}:587 for {to_email}...")
-            with smtplib.SMTP(smtp_host, 587, timeout=10) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(email_from, to_email, msg.as_string())
-            logger.info(f"[SUCCESS GMAIL SMTP 587] Email delivered to {to_email}")
-            print(f"[SUCCESS GMAIL SMTP 587] Email delivered to {to_email}")
-            return True
-        except Exception as err_587:
-            logger.error(f"[GMAIL SMTP 587 FAILED] {err_587}. Retrying via SSL 465...")
-            print(f"[GMAIL SMTP 587 FAILED] {err_587}. Retrying via SSL 465...")
+        protocol = "SSL" if smtp_port == 465 else "STARTTLS"
 
-        # Strategy 2: Gmail SMTP SSL (Port 465 Fallback)
+        # Exactly ONE application-level delivery attempt - no duplicate retry, no provider switching
         try:
-            logger.info(f"[GMAIL SMTP 465] Connecting to {smtp_host}:465 for {to_email}...")
-            with smtplib.SMTP_SSL(smtp_host, 465, timeout=10) as server:
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(email_from, to_email, msg.as_string())
-            logger.info(f"[SUCCESS GMAIL SMTP 465] Email delivered to {to_email}")
-            print(f"[SUCCESS GMAIL SMTP 465] Email delivered to {to_email}")
-            return True
-        except Exception as err_465:
-            logger.critical(f"[CRITICAL GMAIL SMTP 465 ERROR] Delivery failed to {to_email}: {err_465}")
-            print(f"[CRITICAL GMAIL SMTP 465 ERROR] Delivery failed to {to_email}: {err_465}")
+            if smtp_port == 465:
+                logger.info(f"Connecting to SMTP server host={smtp_host} port={smtp_port} protocol=SSL timeout={timeout}s for recipient={redacted_to}")
+                with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=timeout) as server:
+                    if smtp_user and smtp_pass:
+                        server.login(smtp_user, smtp_pass)
+                    elif smtp_user or smtp_pass:
+                        logger.warning(f"Partial credentials configured for host={smtp_host} port={smtp_port}; attempting unauthenticated send.")
+                    server.sendmail(email_from, to_email, msg.as_string())
+            else:
+                logger.info(f"Connecting to SMTP server host={smtp_host} port={smtp_port} protocol={protocol} timeout={timeout}s for recipient={redacted_to}")
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=timeout) as server:
+                    server.ehlo()
+                    has_starttls = server.has_extn("starttls")
+                    if smtp_port in (587, 25) or has_starttls:
+                        server.starttls()
+                        server.ehlo()
+                    if smtp_user and smtp_pass:
+                        server.login(smtp_user, smtp_pass)
+                    elif smtp_user or smtp_pass:
+                        logger.warning(f"Partial credentials configured for host={smtp_host} port={smtp_port}; attempting unauthenticated send.")
+                    server.sendmail(email_from, to_email, msg.as_string())
 
-        return False
+            logger.info(f"SMTP message accepted for delivery: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to}")
+            return True
+
+        except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPException, TimeoutError, OSError) as err:
+            err_cls = err.__class__.__name__
+            # Log sanitized diagnostics without exposing passwords or email bodies
+            logger.error(f"SMTP delivery failed: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to} error={err_cls}")
+            return False
+        except Exception as err:
+            err_cls = err.__class__.__name__
+            logger.error(f"Unexpected SMTP error: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to} error={err_cls}")
+            return False
 
     @staticmethod
     def send_otp_email(to_email: str, otp_code: str) -> bool:
