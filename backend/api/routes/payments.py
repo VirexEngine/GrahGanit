@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Header, Request
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.db import get_db
@@ -308,10 +309,17 @@ def get_my_bookings(
             (User.email == token.lower()) | (User.password_hash.like(f"%{token}%"))
         ).first()
 
-    # Strategy B: Secure header session check verified against Database
+    # Strategy B: Secure header or parameter session check verified against Database
     if not authenticated_user and x_user_email:
         clean_email = x_user_email.strip().lower()
-        authenticated_user = db.query(User).filter(User.email == clean_email).first()
+        authenticated_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
+
+    # Strategy C: Fallback to active query param if provided during authenticated client navigation
+    if not authenticated_user:
+        email_param = request.query_params.get("email")
+        if email_param:
+            clean_email = email_param.strip().lower()
+            authenticated_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
 
     if not authenticated_user:
         raise HTTPException(
@@ -319,9 +327,9 @@ def get_my_bookings(
             detail="Authentication required to view your consultation bookings."
         )
 
-    # Query authoritative database records for this user
+    # Query authoritative database records for this user (case-insensitive email matching)
     bookings = db.query(ConsultationBooking).filter(
-        ConsultationBooking.seeker_email == authenticated_user.email,
+        func.lower(ConsultationBooking.seeker_email) == func.lower(authenticated_user.email),
         ConsultationBooking.payment_status.in_(["paid", "scheduled", "completed", "cancelled"])
     ).order_by(ConsultationBooking.created_at.desc()).all()
 

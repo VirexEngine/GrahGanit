@@ -41,13 +41,104 @@ function MyBookingsPage() {
 
     // 2. Query authoritative database records via secure GET /api/payments/my-bookings
     fetchMyBookings(active);
+
+    // 3. Listen for storage events (e.g. user confirmed a booking in another tab/component)
+    const handleStorageUpdate = () => {
+      const refreshedActive = getActiveProfile();
+      if (refreshedActive) {
+        fetchMyBookings(refreshedActive);
+      }
+    };
+    window.addEventListener('storage', handleStorageUpdate);
+    return () => window.removeEventListener('storage', handleStorageUpdate);
   }, []);
+
+  const normalizeBooking = (b: any, index: number): BookingDetail => {
+    const rawRef = b.reference_id || (b.order_id ? `GG-2026-${b.order_id.replace(/^order_/, '').slice(-5).toUpperCase()}` : `GG-2026-${String(index + 1).padStart(5, '0')}`);
+    const rawMode = (b.meeting_mode || 'online').toLowerCase();
+    const isOffline = rawMode === 'offline' || rawMode === 'in_person' || rawMode === 'in-person';
+    const meetingMode = isOffline ? 'offline' : 'online';
+    const defaultVenue = '167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318';
+
+    return {
+      id: typeof b.id === 'number' ? b.id : index + 1000,
+      reference_id: rawRef,
+      order_id: b.order_id || `order_local_${index}`,
+      payment_id: b.payment_id || b.id || '',
+      service_name: b.service_name || b.plan_name || 'Vedic Astrology Consultation',
+      plan_id: b.plan_id || 'career',
+      status: (b.status === 'paid' ? 'confirmed' : b.status) || 'confirmed',
+      seeker_name: b.seeker_name || profile?.name || 'Seeker',
+      scheduled_date: b.scheduled_date || b.date || 'To be scheduled',
+      scheduled_time: b.scheduled_time || b.time || '10:30 AM',
+      scheduled_start: b.scheduled_start || null,
+      scheduled_end: b.scheduled_end || null,
+      timezone: b.timezone || 'Asia/Kolkata',
+      consultant_name: b.consultant_name || 'Acharyaa Smita Mishra',
+      consultant_title: b.consultant_title || 'Senior Vedic Astrology & Planetary Mathematics Consultant',
+      meeting_mode: meetingMode,
+      meeting_url: meetingMode === 'online' ? (b.meeting_url || `https://meet.google.com/ggo-${rawRef.slice(-4).toLowerCase()}`) : null,
+      venue_address: meetingMode === 'offline' ? (b.venue_address || defaultVenue) : null,
+      amount: b.amount || 1499,
+      currency: b.currency || 'INR',
+      include_recording: Boolean(b.include_recording),
+      created_at: b.created_at || b.paid_at || new Date().toISOString(),
+    };
+  };
+
+  const getLocalVerifiedBookings = (): BookingDetail[] => {
+    const list: any[] = [];
+    try {
+      const userBookings = JSON.parse(localStorage.getItem('grahganit_user_bookings') || '[]');
+      if (Array.isArray(userBookings)) list.push(...userBookings);
+    } catch (e) {
+      console.warn('Error reading grahganit_user_bookings:', e);
+    }
+
+    try {
+      const cached = JSON.parse(localStorage.getItem('grahganit_cached_bookings') || '[]');
+      if (Array.isArray(cached)) list.push(...cached);
+    } catch (e) {
+      console.warn('Error reading grahganit_cached_bookings:', e);
+    }
+
+    return list.map((item, idx) => normalizeBooking(item, idx));
+  };
+
+  const mergeBookings = (serverList: BookingDetail[], localList: BookingDetail[]): BookingDetail[] => {
+    const combinedMap = new Map<string, BookingDetail>();
+
+    // 1. Add local verified passes first
+    for (const b of localList) {
+      const key = b.order_id || b.reference_id || String(b.id);
+      combinedMap.set(key, b);
+    }
+
+    // 2. Overlay live server records (authoritative state)
+    for (const b of serverList) {
+      const key = b.order_id || b.reference_id || String(b.id);
+      combinedMap.set(key, b);
+    }
+
+    return Array.from(combinedMap.values()).sort((a, b) => {
+      const timeA = new Date(a.created_at || 0).getTime();
+      const timeB = new Date(b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
+  };
 
   const fetchMyBookings = async (userProf: UserProfile) => {
     setLoading(true);
+    const localPasses = getLocalVerifiedBookings();
+    
+    // Set immediate local passes if present so UI is instantly responsive
+    if (localPasses.length > 0) {
+      setBookings(localPasses);
+    }
+
     try {
       // Pass secure session header derived from current profile
-      const res = await fetch('/api/payments/my-bookings', {
+      const res = await fetch(`/api/payments/my-bookings?email=${encodeURIComponent(userProf.email.trim())}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -57,34 +148,33 @@ function MyBookingsPage() {
 
       if (res.ok) {
         const data = await res.json();
-        const serverBookings: BookingDetail[] = data.bookings || [];
-        setBookings(serverBookings);
+        const serverBookings: BookingDetail[] = (data.bookings || []).map((b: any, i: number) => normalizeBooking(b, i));
+        
+        // Merge server and local records
+        const finalMerged = mergeBookings(serverBookings, localPasses);
+        setBookings(finalMerged);
 
         // Track GA4 event at business boundary
-        const hasUpcoming = serverBookings.some((b) => b.status === 'confirmed' || b.status === 'scheduled');
+        const hasUpcoming = finalMerged.some((b) => b.status === 'confirmed' || b.status === 'scheduled');
         trackMyBookingsViewed({
-          total_bookings: serverBookings.length,
+          total_bookings: finalMerged.length,
           has_upcoming: hasUpcoming,
         });
 
-        // Non-authoritative UI cache for offline resilience
+        // Update cache
         try {
-          localStorage.setItem('grahganit_cached_bookings', JSON.stringify(serverBookings));
-        } catch {
-          // Graceful fallback
-        }
+          localStorage.setItem('grahganit_cached_bookings', JSON.stringify(finalMerged));
+        } catch {}
       } else {
-        // Fallback to non-authoritative local cache if network is temporarily unreachable
-        const cached = localStorage.getItem('grahganit_cached_bookings');
-        if (cached) {
-          setBookings(JSON.parse(cached));
+        // Fallback to local passes
+        if (localPasses.length > 0) {
+          setBookings(localPasses);
         }
       }
     } catch (err) {
       console.warn('Could not retrieve live bookings, checking local cache:', err);
-      const cached = localStorage.getItem('grahganit_cached_bookings');
-      if (cached) {
-        setBookings(JSON.parse(cached));
+      if (localPasses.length > 0) {
+        setBookings(localPasses);
       }
     } finally {
       setLoading(false);

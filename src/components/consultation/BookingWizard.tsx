@@ -258,6 +258,13 @@ export const BookingWizard: React.FC = () => {
               throw new Error('Payment verification failed on server.');
             }
 
+            let verifiedBookingData: any = null;
+            try {
+              verifiedBookingData = await verifyRes.json();
+            } catch {
+              // fallback if non-json
+            }
+
             // Server-verified purchase tracking
             trackPurchase({
               transaction_id: response.razorpay_payment_id,
@@ -281,27 +288,51 @@ export const BookingWizard: React.FC = () => {
               currency: orderData.currency || 'INR',
             });
 
+            const refSuffix = (response.razorpay_order_id || `ord_${Date.now()}`).replace('order_', '').replace('dev_', '').replace('grah_', '');
+            const generatedRefId = `GG-2026-${refSuffix.slice(-5).toUpperCase()}`;
+
             const confirmedBooking = {
-              id: response.razorpay_payment_id || `pay_${Date.now()}`,
+              id: verifiedBookingData?.booking?.id || Date.now(),
+              reference_id: generatedRefId,
               order_id: response.razorpay_order_id,
-              payment_id: response.razorpay_payment_id,
+              payment_id: response.razorpay_payment_id || '',
+              service_name: selectedService.name,
               plan_id: selectedService.id,
               plan_name: selectedService.name,
-              amount: totalAmount,
-              date: formattedSelectedDate,
-              time: selectedTime || '10:30 AM',
-              meeting_mode: formData.consultationMode,
-              venue_address: formData.consultationMode === 'offline' ? '167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318' : null,
+              status: 'confirmed',
               seeker_name: formData.name || 'Seeker',
               seeker_email: formData.email || '',
+              amount: totalAmount,
+              currency: orderData.currency || 'INR',
+              date: formattedSelectedDate,
+              time: selectedTime || '10:30 AM',
+              scheduled_date: formattedSelectedDate,
+              scheduled_time: selectedTime || '10:30 AM',
+              timezone: 'Asia/Kolkata',
+              consultant_name: 'Acharyaa Smita Mishra',
+              consultant_title: 'Senior Vedic Astrology & Planetary Mathematics Consultant',
+              meeting_mode: formData.consultationMode,
+              meeting_url: formData.consultationMode === 'online' ? `https://meet.google.com/ggo-${refSuffix.slice(-4).toLowerCase()}` : null,
+              venue_address: formData.consultationMode === 'offline' ? '167B, Second Floor, Gaur City Center, Greater Noida West, UP - 201318' : null,
+              include_recording: formData.includeRecording,
               paid_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
             };
 
             try {
+              // 1. Update user booking passes
               const existing = JSON.parse(localStorage.getItem('grahganit_user_bookings') || '[]');
-              const updated = [confirmedBooking, ...existing.filter((b: any) => b.plan_id !== selectedService.id)];
+              const updated = [confirmedBooking, ...existing.filter((b: any) => b.plan_id !== selectedService.id && b.order_id !== response.razorpay_order_id)];
               localStorage.setItem('grahganit_user_bookings', JSON.stringify(updated));
               setUserBookings(updated);
+
+              // 2. Also keep cached bookings up to date
+              const existingCached = JSON.parse(localStorage.getItem('grahganit_cached_bookings') || '[]');
+              const updatedCached = [confirmedBooking, ...existingCached.filter((b: any) => b.order_id !== response.razorpay_order_id)];
+              localStorage.setItem('grahganit_cached_bookings', JSON.stringify(updatedCached));
+
+              // 3. Dispatch storage event for instant cross-tab & component synchronization
+              window.dispatchEvent(new Event('storage'));
             } catch (saveErr) {
               console.error('Error saving local booking pass:', saveErr);
             }
@@ -385,13 +416,14 @@ export const BookingWizard: React.FC = () => {
     if (profile) {
       setFormData((prev) => ({
         ...prev,
-        name: profile.name,
-        email: profile.email,
-        dob: profile.dob,
-        time: profile.time,
-        place: profile.place,
+        name: prev.name || profile.name || '',
+        email: prev.email || profile.email || '',
+        phone: prev.phone || profile.phoneNumber || '',
+        dob: prev.dob || profile.dob || '',
+        time: prev.time || profile.time || '',
+        place: prev.place || profile.place || '',
       }));
-      setAutocompleteInput(profile.place);
+      if (profile.place) setAutocompleteInput(profile.place);
     }
 
     // Parse URL query params (e.g., ?plan=career&focus=Career)
