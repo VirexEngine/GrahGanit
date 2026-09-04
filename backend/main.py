@@ -8,9 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.db import Base, engine
 from backend.models import schemas
 
-# Create database tables automatically
+# Create database tables automatically & run non-destructive schema migrations
 try:
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        from sqlalchemy import text
+        # Ensure new schema columns exist in production PostgreSQL / SQLite
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS picture VARCHAR(500);"))
+        conn.execute(text("ALTER TABLE consultation_bookings ADD COLUMN IF NOT EXISTS meeting_mode VARCHAR(50) DEFAULT 'online';"))
     print("[DB] Database tables created/verified successfully.")
 except Exception as e:
     print(f"[DB] Database table initialization error: {e}")
