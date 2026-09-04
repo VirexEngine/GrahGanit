@@ -362,8 +362,10 @@ def google_authenticate_user(payload: GoogleAuthRequest, db: Session = Depends(g
     """Authenticates or creates a user account via Google OAuth credentials."""
     clean_email = payload.email.lower().strip()
     user = db.query(User).filter(User.email == clean_email).first()
+    is_new_user = False
 
     if not user:
+        is_new_user = True
         name_parts = payload.name.strip().split(" ", 1)
         first_name = name_parts[0]
         surname = name_parts[1] if len(name_parts) > 1 else ""
@@ -386,6 +388,7 @@ def google_authenticate_user(payload: GoogleAuthRequest, db: Session = Depends(g
     return {
         "status": "success",
         "message": "Google authentication successful",
+        "is_new_user": is_new_user,
         "user": {
             "id": user.id,
             "name": user.name or f"{user.first_name} {user.surname}",

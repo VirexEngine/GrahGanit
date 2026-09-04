@@ -11,6 +11,7 @@ import {
   ShieldCheck, Lock, EyeOff, Eye, Mail, Sparkles, ChevronRight,
   Phone, CheckCircle2, RefreshCw, KeyRound, UserCheck, User
 } from 'lucide-react'
+import { trackEvent } from '@/lib/analytics'
 
 export const Route = createFileRoute('/login')({
   component: RouteComponent,
@@ -271,6 +272,7 @@ function RouteComponent() {
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [cooldown, setCooldown] = useState(0);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const trackedAuthEventsRef = useRef<Set<string>>(new Set());
 
   // UI state
   const [formLoading, setFormLoading] = useState(false);
@@ -426,6 +428,14 @@ function RouteComponent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Account registration failed.');
+
+      // Fire GA4 sign_up event (guarded against duplicate triggers, zero PII)
+      const signupEventKey = `signup_email_${email.trim().toLowerCase()}`;
+      if (!trackedAuthEventsRef.current.has(signupEventKey)) {
+        trackedAuthEventsRef.current.add(signupEventKey);
+        trackEvent('sign_up', { method: 'email' });
+      }
+
       const fullName = `${firstName.trim()} ${surname.trim()}`;
       setAuthUser({ name: fullName, email: email.trim() });
     } catch (err: any) {
@@ -455,6 +465,13 @@ function RouteComponent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Sign in failed.');
+
+      // Fire GA4 login event (guarded against duplicate triggers, zero PII)
+      const loginEventKey = `login_email_${email.trim().toLowerCase()}_${Date.now()}`;
+      if (!trackedAuthEventsRef.current.has(loginEventKey)) {
+        trackedAuthEventsRef.current.add(loginEventKey);
+        trackEvent('login', { method: 'email' });
+      }
 
       // If user already has a saved birth profile, restore it directly to dashboard
       if (data.user.has_profile && data.user.profile?.dob) {
@@ -501,6 +518,21 @@ function RouteComponent() {
         body: JSON.stringify(googleUser),
       });
       const data = await res.json();
+
+      // Only fire sign_up / login if the API response explicitly indicates whether this is a new or existing user
+      if (data?.is_new_user === true) {
+        const googleSignupKey = `signup_google_${googleUser.email.trim().toLowerCase()}`;
+        if (!trackedAuthEventsRef.current.has(googleSignupKey)) {
+          trackedAuthEventsRef.current.add(googleSignupKey);
+          trackEvent('sign_up', { method: 'google' });
+        }
+      } else if (data?.is_new_user === false) {
+        const googleLoginKey = `login_google_${googleUser.email.trim().toLowerCase()}`;
+        if (!trackedAuthEventsRef.current.has(googleLoginKey)) {
+          trackedAuthEventsRef.current.add(googleLoginKey);
+          trackEvent('login', { method: 'google' });
+        }
+      }
 
       // If existing user already has a saved birth profile in DB, restore directly!
       if (data?.user?.has_profile && data?.user?.profile?.dob) {
