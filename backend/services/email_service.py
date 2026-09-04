@@ -113,11 +113,11 @@ class EmailService:
         except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPException, TimeoutError, OSError) as err:
             err_cls = err.__class__.__name__
             # Log sanitized diagnostics without exposing passwords or email bodies
-            logger.error(f"SMTP delivery failed: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to} error={err_cls}")
+            logger.error(f"SMTP delivery failed: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to} error={err_cls} detail={str(err)[:100]}")
             return False
         except Exception as err:
             err_cls = err.__class__.__name__
-            logger.error(f"Unexpected SMTP error: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to} error={err_cls}")
+            logger.error(f"Unexpected SMTP error: host={smtp_host} port={smtp_port} protocol={protocol} recipient={redacted_to} error={err_cls} detail={str(err)[:100]}")
             return False
 
     @staticmethod
